@@ -1,0 +1,117 @@
+kind: ServiceAccount
+metadata:
+  name: product-app
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app
+    app.kubernetes.io/version: "1.16.0"
+---
+# Source: product-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-app
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app
+---
+# Source: product-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-app
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: product-app
+      app.kubernetes.io/instance: product-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: product-app
+        app.kubernetes.io/instance: product-app
+    spec:
+      serviceAccountName: product-app
+      securityContext:
+        {}
+      containers:
+        - name: product-app
+          env:
+          - name: PORT
+            value: "8080"
+          - name: APP_DB_HOST
+            value: pg-postgresql.postgres.svc.cluster.local
+          - name: APP_DB_PORT
+            value: "5432"
+          - name: APP_DB_USERNAME
+            value: techuser
+          - name: APP_DB_PASSWORD
+            value: techuser
+          - name: APP_DB_NAME
+            value: products
+          - name: SSLSTATUS
+            value: disable        
+          securityContext:
+            {}
+          image: "dm0610/products-api:main"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /products
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /products
+              port: http
+          resources:
+            {}
+---
+# Source: product-app/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: product-app
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app
+    app.kubernetes.io/version: "1.16.0"
+spec:
+  rules:
+    - host: "product-api.dmvstrelnikov.ru"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: product-app
+                port:
+                  number: 8080
+---
+# Source: product-app/templates/tests/test-connection.yaml
+apiVersion: v1

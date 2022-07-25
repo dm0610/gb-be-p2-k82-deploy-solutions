@@ -1,0 +1,20 @@
+---
+# Source: product-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-app
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app-canary
+
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app-canary

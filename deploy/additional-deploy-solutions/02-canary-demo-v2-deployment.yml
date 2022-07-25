@@ -1,0 +1,65 @@
+---
+# Source: product-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-app-v2
+  labels:
+    app.kubernetes.io/name: product-app
+    app.kubernetes.io/instance: product-app-canary
+    app.kubernetes.io/version: "1.16.2"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: product-app
+      app.kubernetes.io/instance: product-app-canary
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: product-app
+        app.kubernetes.io/instance: product-app-canary
+    spec:
+      serviceAccountName: product-app
+      securityContext:
+        {}
+      containers:
+        - name: product-app-v2
+          env:
+          - name: PORT
+            value: "8080"
+          - name: APP_DB_HOST
+            value: pg-postgresql.postgres.svc.cluster.local
+          - name: APP_DB_PORT
+            value: "5432"
+          - name: APP_DB_USERNAME
+            value: techuser
+          - name: APP_DB_PASSWORD
+            value: techuser
+          - name: APP_DB_NAME
+            value: products
+          - name: SSLSTATUS
+            value: disable        
+          securityContext:
+            {}
+          image: "dm0610/products-api:main-v2"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /products
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /products
+              port: http
+          resources:
+            {}
